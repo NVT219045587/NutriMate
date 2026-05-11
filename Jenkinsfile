@@ -166,24 +166,15 @@ pipeline {
             }
             steps {
                 withCredentials([string(credentialsId: 'octopus-api-key', variable: 'OCTOPUS_API_KEY')]) {
-                    // Create a release then deploy it to Production via the Octopus CLI.
-                    // The CLI must be installed on the Jenkins agent:
-                    //   https://octopus.com/downloads/octopuscli
+                    // Register the release in Octopus for tracking and audit trail.
+                    // Actual deployment is handled by the Deploy stage above using
+                    // Jenkins credentials — no need to duplicate secrets in Octopus.
                     bat """
                         dotnet-octo create-release ^
                             --project "%OCTOPUS_PROJECT%" ^
                             --version "%RELEASE_VERSION%" ^
                             --server "%OCTOPUS_SERVER_URL%" ^
                             --apiKey "%OCTOPUS_API_KEY%"
-
-                        dotnet-octo deploy-release ^
-                            --project "%OCTOPUS_PROJECT%" ^
-                            --version "%RELEASE_VERSION%" ^
-                            --deployTo Production ^
-                            --server "%OCTOPUS_SERVER_URL%" ^
-                            --apiKey "%OCTOPUS_API_KEY%" ^
-                            --waitfordeployment ^
-                            --deploymenttimeout 00:15:00
                     """
                 }
                 echo "NutriMate ${RELEASE_VERSION} released to Production."

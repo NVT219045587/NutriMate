@@ -127,7 +127,10 @@ pipeline {
         // ── Deploy (main / master only) ──────────────────────────────────────
         stage('Deploy') {
             when {
-                anyOf { branch 'main'; branch 'master' }
+                anyOf {
+                    expression { env.GIT_BRANCH == 'origin/main' }
+                    expression { env.GIT_BRANCH == 'origin/master' }
+                }
             }
             environment {
                 JWT_SECRET        = credentials('nutrimate-jwt-secret')
@@ -157,7 +160,10 @@ pipeline {
         // ── Release to Production via Octopus Deploy ─────────────────────────
         stage('Release — Production') {
             when {
-                anyOf { branch 'main'; branch 'master' }
+                anyOf {
+                    expression { env.GIT_BRANCH == 'origin/main' }
+                    expression { env.GIT_BRANCH == 'origin/master' }
+                }
             }
             steps {
                 // Create a release in Octopus referencing the versioned images.

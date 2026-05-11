@@ -171,13 +171,13 @@ pipeline {
                     // The CLI must be installed on the Jenkins agent:
                     //   https://octopus.com/downloads/octopuscli
                     bat """
-                        octo create-release ^
+                        dotnet-octo create-release ^
                             --project "%OCTOPUS_PROJECT%" ^
                             --version "%RELEASE_VERSION%" ^
                             --server "%OCTOPUS_SERVER_URL%" ^
                             --apiKey "%OCTOPUS_API_KEY%"
 
-                        octo deploy-release ^
+                        dotnet-octo deploy-release ^
                             --project "%OCTOPUS_PROJECT%" ^
                             --version "%RELEASE_VERSION%" ^
                             --deployTo Production ^

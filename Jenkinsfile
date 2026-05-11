@@ -92,15 +92,6 @@ pipeline {
             }
         }
 
-        // ── Unit + integration tests ─────────────────────────────────────────
-        stage('Test — Frontend') {
-            steps {
-                dir('nutrimate.client') {
-                    bat 'npm test'
-                }
-            }
-        }
-
         // ── Security scan — Snyk (npm dependencies) ─────────────────────────
         stage('Security — Snyk') {
             steps {
@@ -197,6 +188,15 @@ pipeline {
 
                 powershell 'if (Test-Path .env) { Remove-Item -Force .env }'
                 echo "NutriMate ${IMAGE_TAG} deployed to staging."
+            }
+        }
+
+        // ── Unit + integration tests (runs after Deploy so API is reachable) ──
+        stage('Test — Frontend') {
+            steps {
+                dir('nutrimate.client') {
+                    bat 'npm test'
+                }
             }
         }
 

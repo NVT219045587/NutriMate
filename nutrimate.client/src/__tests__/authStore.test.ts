@@ -71,12 +71,21 @@ describe('authStore — state transitions', () => {
 // ── API integration tests — 401 / 403 ────────────────────────────────────────
 
 describe(`API auth protection (${API_BASE})`, () => {
+  function assertHttpError(err: any, expectedStatus: number): void {
+    if (!err.response) {
+      throw new Error(
+        `API not reachable at ${API_BASE} — is the container running? (${err.message})`
+      );
+    }
+    expect(err.response.status).toBe(expectedStatus);
+  }
+
   it('GET /api/nutrition/daily returns 401 without a session', async () => {
     expect.assertions(1);
     try {
       await axios.get(`${API_BASE}/api/nutrition/daily`);
     } catch (err: any) {
-      expect(err.response?.status).toBe(401);
+      assertHttpError(err, 401);
     }
   });
 
@@ -85,7 +94,7 @@ describe(`API auth protection (${API_BASE})`, () => {
     try {
       await axios.get(`${API_BASE}/api/user/profile`);
     } catch (err: any) {
-      expect(err.response?.status).toBe(401);
+      assertHttpError(err, 401);
     }
   });
 
@@ -98,7 +107,7 @@ describe(`API auth protection (${API_BASE})`, () => {
         { withCredentials: true }
       );
     } catch (err: any) {
-      expect(err.response?.status).toBe(401);
+      assertHttpError(err, 401);
     }
   });
 });

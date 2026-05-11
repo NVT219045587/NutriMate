@@ -92,12 +92,21 @@ pipeline {
             }
         }
 
+        // ── Unit + integration tests ─────────────────────────────────────────
+        stage('Test — Frontend') {
+            steps {
+                dir('nutrimate.client') {
+                    bat 'npm test'
+                }
+            }
+        }
+
         // ── Security scan — Snyk (npm dependencies) ─────────────────────────
         stage('Security — Snyk') {
             steps {
                 dir('nutrimate.client') {
                     withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                        bat 'npm test'
+                        bat 'npm run test:coverage'
                     }
                 }
             }

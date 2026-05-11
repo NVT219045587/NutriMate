@@ -8,19 +8,23 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "snyk test --severity-threshold=high"
+    "test": "jest",
+    "test:coverage": "snyk test --severity-threshold=high"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.7",
+    "@types/jest": "^30.0.0",
     "antd": "^5.22.2",
-    "axios": "^1.7.9",
+    "axios": "^1.16.0",
     "dayjs": "^1.11.13",
+    "jest": "^30.4.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-grid-layout": "^1.4.4",
     "react-router-dom": "^7.1.1",
     "recharts": "^2.14.1",
     "snyk": "^1.1304.2",
+    "ts-jest": "^29.4.9",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

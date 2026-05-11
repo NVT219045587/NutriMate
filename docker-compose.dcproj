@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" Sdk="Microsoft.Docker.Sdk">
+
+  <PropertyGroup Label="Globals">
+    <ProjectVersion>2.1</ProjectVersion>
+    <DockerTargetOS>Linux</DockerTargetOS>
+    <ProjectGuid>{A3C5E7F9-B1D3-4E56-A789-C2D4E6F8A0B2}</ProjectGuid>
+
+    <!--
+      The "startup" service whose port VS opens in the browser.
+      nginx (nutrimate-ui) is the public entry-point on port 80.
+    -->
+    <DockerServiceName>nutrimate-ui</DockerServiceName>
+    <DockerServiceUrl>http://localhost:8090</DockerServiceUrl>
+    <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
+    <DockerLaunchUrl>http://localhost:8090</DockerLaunchUrl>
+  </PropertyGroup>
+
+  <!--
+    VS merges docker-compose.yml + docker-compose.override.yml automatically
+    when both are listed here.  The override supplies dev credentials so no
+    .env file is required when running from Visual Studio.
+  -->
+  <ItemGroup>
+    <None Include="docker-compose.yml" />
+    <None Include="docker-compose.override.yml" />
+  </ItemGroup>
+
+  <!--
+    Ties the .NET project to the nutrimate-api compose service so VS can
+    report build errors inline and navigate source from the Output window.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="NutriMate.Server\NutriMate.Server.csproj">
+      <DockerComposeServiceName>nutrimate-api</DockerComposeServiceName>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

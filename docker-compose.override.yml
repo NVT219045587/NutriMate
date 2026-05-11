@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Development overrides — automatically merged with docker-compose.yml by
+# Docker Compose and by Visual Studio's Docker Compose project.
+# Included in repo for local debugging purpose; actual deployment will need different requirements and credentials protection
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── SQL Server ───────────────────────────────────────────────────────────────
+  mssql:
+    environment:
+      MSSQL_SA_PASSWORD: "Dev@Passw0rd123"   
+    ports:
+      - "14325:1433"                          
+
+  # ── ASP.NET Core API ─────────────────────────────────────────────────────────
+  nutrimate-api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=NutriMate;User Id=sa;Password=Dev@Passw0rd123;TrustServerCertificate=True;"
+      Jwt__Secret: "dev-only-jwt-secret-do-not-use-in-prod-32chars"
+    ports:
+      - "18080:8080"                          # expose for direct Swagger access
+    healthcheck:
+      disable: true
+
+  # ── nginx (React SPA) ────────────────────────────────────────────────────────
+  nutrimate-ui:
+    ports:
+      - "8090:80"                             # already in base, repeated for clarity
+    depends_on:
+      nutrimate-api:
+        condition: service_started

@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# NutriMate — three-service composition
+#
+#   nutrimate-ui    nginx serving the React SPA, reverse-proxies /api/* → API
+#   nutrimate-api   ASP.NET Core 8 Web API
+#   mssql           SQL Server 2022 (Developer edition — free for non-prod use)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── SQL Server 2022 ─────────────────────────────────────────────────────────
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: nutrimate-mssql
+    ports:
+      - "14325:1433"          # expose for local tooling / SSMS; remove in prod
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      MSSQL_PID: "Developer"  # free; change to "Standard"/"Enterprise" if licensed
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import socket; s=socket.socket(); s.settimeout(3); s.connect(('127.0.0.1',1433)); s.close()\""]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s     # MSSQL needs ~30–45 s before it accepts connections
+    restart: unless-stopped
+
+  # ── ASP.NET Core API ────────────────────────────────────────────────────────
+  nutrimate-api:
+    image: nutrimate-api:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: NutriMate.Server/Dockerfile
+    container_name: nutrimate-api
+    expose:
+      - "8080"              
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=NutriMate;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret: "${JWT_SECRET}"
+    depends_on:
+      mssql:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── nginx (React SPA) ────────────────────────────────────────────────────────
+  nutrimate-ui:
+    image: nutrimate-ui:${IMAGE_TAG:-latest}
+    build:
+      context: nutrimate.client
+      dockerfile: Dockerfile
+    container_name: nutrimate-ui
+    ports:
+      - "8090:80"           # public entry-point
+    depends_on:
+      nutrimate-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  mssql_data:
+    driver: local

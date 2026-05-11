@@ -1,0 +1,17 @@
+<Solution>
+
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yml" />
+    <File Path="docker-compose.override.yml" />
+    <File Path=".env.example" />
+    <File Path="Jenkinsfile" />
+  </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="nutrimate.client/nutrimate.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="NutriMate.Server/NutriMate.Server.csproj" />
+</Solution>

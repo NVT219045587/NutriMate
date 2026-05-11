@@ -58,13 +58,13 @@ pipeline {
             parallel {
                 stage('Backend — Restore') {
                     steps {
-                        sh 'dotnet restore NutriMate.Server/NutriMate.Server.csproj -p:BuildSpaProject=false'
+                        bat 'dotnet restore NutriMate.Server/NutriMate.Server.csproj -p:BuildSpaProject=false'
                     }
                 }
                 stage('Frontend — Install') {
                     steps {
                         dir('nutrimate.client') {
-                            sh 'npm ci'
+                            bat 'npm ci'
                         }
                     }
                 }
@@ -76,17 +76,13 @@ pipeline {
             parallel {
                 stage('Backend — Build') {
                     steps {
-                        sh '''
-                            dotnet build NutriMate.Server/NutriMate.Server.csproj \
-                                -c Release --no-restore \
-                                -p:BuildSpaProject=false
-                        '''
+                        bat 'dotnet build NutriMate.Server/NutriMate.Server.csproj -c Release --no-restore -p:BuildSpaProject=false'
                     }
                 }
                 stage('Frontend — Build') {
                     steps {
                         dir('nutrimate.client') {
-                            sh 'npm run build'
+                            bat 'npm run build'
                         }
                     }
                 }
@@ -96,10 +92,10 @@ pipeline {
         // ── Docker image builds + push to Docker Hub ────────────────────────
         stage('Docker — Build & Push Images') {
             steps {
-                // Build images. IMAGE_TAG is a docker-compose variable (used in
-                // image: tag), not a Dockerfile ARG — pass as env var.
+                // IMAGE_TAG is set in the environment block above so docker compose
+                // picks it up for variable substitution in image: tags.
                 // -f docker-compose.yml skips the override (no dev healthcheck overrides).
-                sh "IMAGE_TAG=${IMAGE_TAG} docker compose -f docker-compose.yml build"
+                bat 'docker compose -f docker-compose.yml build'
 
                 // Push versioned and :latest tags to Docker Hub so Octopus Deploy
                 // can reference them by version when deploying to Production.
@@ -108,18 +104,19 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    powershell '''
+                        $env:DOCKER_PASS | docker login -u $env:DOCKER_USER --password-stdin
+                        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-                        docker tag nutrimate-api:${IMAGE_TAG}  ${DOCKER_USER}/nutrimate-api:${IMAGE_TAG}
-                        docker tag nutrimate-api:${IMAGE_TAG}  ${DOCKER_USER}/nutrimate-api:latest
-                        docker tag nutrimate-ui:${IMAGE_TAG}   ${DOCKER_USER}/nutrimate-ui:${IMAGE_TAG}
-                        docker tag nutrimate-ui:${IMAGE_TAG}   ${DOCKER_USER}/nutrimate-ui:latest
+                        docker tag "nutrimate-api:$env:IMAGE_TAG"  "$env:DOCKER_USER/nutrimate-api:$env:IMAGE_TAG"
+                        docker tag "nutrimate-api:$env:IMAGE_TAG"  "$env:DOCKER_USER/nutrimate-api:latest"
+                        docker tag "nutrimate-ui:$env:IMAGE_TAG"   "$env:DOCKER_USER/nutrimate-ui:$env:IMAGE_TAG"
+                        docker tag "nutrimate-ui:$env:IMAGE_TAG"   "$env:DOCKER_USER/nutrimate-ui:latest"
 
-                        docker push ${DOCKER_USER}/nutrimate-api:${IMAGE_TAG}
-                        docker push ${DOCKER_USER}/nutrimate-api:latest
-                        docker push ${DOCKER_USER}/nutrimate-ui:${IMAGE_TAG}
-                        docker push ${DOCKER_USER}/nutrimate-ui:latest
+                        docker push "$env:DOCKER_USER/nutrimate-api:$env:IMAGE_TAG"
+                        docker push "$env:DOCKER_USER/nutrimate-api:latest"
+                        docker push "$env:DOCKER_USER/nutrimate-ui:$env:IMAGE_TAG"
+                        docker push "$env:DOCKER_USER/nutrimate-ui:latest"
 
                         docker logout
                     '''
@@ -139,17 +136,20 @@ pipeline {
             steps {
                 // Write .env so docker compose picks up secrets from the
                 // Jenkins credentials store without embedding them in the YAML.
-                sh '''
-                    printf "JWT_SECRET=%s\\nMSSQL_SA_PASSWORD=%s\\nIMAGE_TAG=%s\\n" \
-                        "$JWT_SECRET" "$MSSQL_SA_PASSWORD" "$IMAGE_TAG" > .env
+                powershell '''
+                    Set-Content -Path .env -Encoding ascii -Value @(
+                        "JWT_SECRET=$env:JWT_SECRET",
+                        "MSSQL_SA_PASSWORD=$env:MSSQL_SA_PASSWORD",
+                        "IMAGE_TAG=$env:IMAGE_TAG"
+                    )
                 '''
 
                 // Rolling restart — keep DB volume, pull new images.
                 // -f docker-compose.yml ensures the dev override is not merged,
                 // preserving production healthchecks and depends_on conditions.
-                sh 'docker compose -f docker-compose.yml up -d --remove-orphans'
+                bat 'docker compose -f docker-compose.yml up -d --remove-orphans'
 
-                sh 'rm -f .env'
+                powershell 'if (Test-Path .env) { Remove-Item -Force .env }'
                 echo "NutriMate ${IMAGE_TAG} deployed to staging."
             }
         }
@@ -238,7 +238,7 @@ pipeline {
             )
         }
         always {
-            sh 'rm -f .env'
+            powershell 'if (Test-Path .env) { Remove-Item -Force .env }'
             cleanWs()
         }
     }

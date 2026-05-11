@@ -105,7 +105,7 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     powershell '''
-                        $env:DOCKER_PASS | docker login -u $env:DOCKER_USER --password-stdin
+                        docker login -u $env:DOCKER_USER -p $env:DOCKER_PASS
                         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
                         docker tag "nutrimate-api:$env:IMAGE_TAG"  "$env:DOCKER_USER/nutrimate-api:$env:IMAGE_TAG"

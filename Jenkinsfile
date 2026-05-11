@@ -126,10 +126,17 @@ pipeline {
         // ── Docker image builds + push to Docker Hub ────────────────────────
         stage('Docker — Build & Push Images') {
             steps {
-                // IMAGE_TAG is set in the environment block above so docker compose
-                // picks it up for variable substitution in image: tags.
-                // -f docker-compose.yml skips the override (no dev healthcheck overrides).
+                // Provide placeholder values for runtime-only secrets so docker compose
+                // does not warn about unset variables during the build phase.
+                powershell '''
+                    Set-Content -Path .env -Encoding ascii -Value @(
+                        "MSSQL_SA_PASSWORD=placeholder",
+                        "JWT_SECRET=placeholder",
+                        "IMAGE_TAG=$env:IMAGE_TAG"
+                    )
+                '''
                 bat 'docker compose -f docker-compose.yml build'
+                powershell 'if (Test-Path .env) { Remove-Item -Force .env }'
 
                 // Push versioned and :latest tags to Docker Hub so Octopus Deploy
                 // can reference them by version when deploying to Production.

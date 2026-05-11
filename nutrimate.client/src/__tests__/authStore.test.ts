@@ -3,7 +3,9 @@ import { useAuthStore } from '../store/authStore';
 
 // Targets the API exposed by docker-compose.override.yml (port 18080 → container 8080).
 // Override with API_BASE_URL env var when running against a different environment.
-const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:18080';
+// In production compose (no override), the API is only reachable through the
+// nginx proxy on port 8090 — port 18080 is only mapped in the dev override.
+const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:8090';
 
 // ── Store unit tests ──────────────────────────────────────────────────────────
 

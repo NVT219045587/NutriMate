@@ -3,7 +3,6 @@ pipeline {
 
     /*
      * GitHub repository: https://github.com/NVT219045587/NutriMate
-     *
      * Required Jenkins plugins:
      *   - Git Plugin
      *   - Pipeline (workflow-aggregator)

@@ -32,9 +32,9 @@ pipeline {
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
         GITHUB_REPO     = 'https://github.com/NVT219045587/NutriMate'
         NOTIFY_EMAIL    = 'viettung0901+jenkinlog@gmail.com'
-        OCTOPUS_PROJECT = 'NutriMate'
-        OCTOPUS_SERVER  = 'octopus-server'   // Server ID from Jenkins → System → Octopus Deploy Plugin
-        RELEASE_VERSION = "1.0.${env.BUILD_NUMBER}"
+        OCTOPUS_PROJECT    = 'NutriMate'
+        OCTOPUS_SERVER_URL = 'https://s219045587.octopus.app'  // replace with your Octopus Cloud URL
+        RELEASE_VERSION    = "1.0.${env.BUILD_NUMBER}"
     }
 
     // Fires automatically when GitHub sends a push webhook to Jenkins.
@@ -166,29 +166,27 @@ pipeline {
                 }
             }
             steps {
-                // Create a release in Octopus referencing the versioned images.
-                // Octopus resolves the Docker image versions via its Docker Hub feed.
-                octopusCreateRelease(
-                    serverId:       "${OCTOPUS_SERVER}",
-                    project:        "${OCTOPUS_PROJECT}",
-                    releaseVersion: "${RELEASE_VERSION}",
-                    defaultPackageVersion: "${IMAGE_TAG}"
-                )
+                withCredentials([string(credentialsId: 'octopus-api-key', variable: 'OCTOPUS_API_KEY')]) {
+                    // Create a release then deploy it to Production via the Octopus CLI.
+                    // The CLI must be installed on the Jenkins agent:
+                    //   https://octopus.com/downloads/octopuscli
+                    bat """
+                        octo create-release ^
+                            --project "%OCTOPUS_PROJECT%" ^
+                            --version "%RELEASE_VERSION%" ^
+                            --server "%OCTOPUS_SERVER_URL%" ^
+                            --apiKey "%OCTOPUS_API_KEY%"
 
-                // Promote the release to the Production environment.
-                // waitForDeployment: true blocks the pipeline until Octopus
-                // reports success or failure, so the post section reflects the
-                // actual production deployment outcome.
-                octopusDeployRelease(
-                    serverId:          "${OCTOPUS_SERVER}",
-                    project:           "${OCTOPUS_PROJECT}",
-                    releaseVersion:    "${RELEASE_VERSION}",
-                    environment:       'Production',
-                    waitForDeployment: true,
-                    cancelOnTimeout:   true,
-                    deploymentTimeout: '00:15:00'
-                )
-
+                        octo deploy-release ^
+                            --project "%OCTOPUS_PROJECT%" ^
+                            --version "%RELEASE_VERSION%" ^
+                            --deployTo Production ^
+                            --server "%OCTOPUS_SERVER_URL%" ^
+                            --apiKey "%OCTOPUS_API_KEY%" ^
+                            --waitfordeployment ^
+                            --deploymenttimeout 00:15:00
+                    """
+                }
                 echo "NutriMate ${RELEASE_VERSION} released to Production."
             }
         }

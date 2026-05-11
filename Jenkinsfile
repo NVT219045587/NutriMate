@@ -16,6 +16,8 @@ pipeline {
      *   octopus-api-key             Secret text — Octopus Deploy API key
      *   nutrimate-jwt-secret        Secret text — JWT signing key (≥32 chars)
      *   nutrimate-mssql-sa-password Secret text — SA password (SQL Server rules)
+     *   snyk-token                  Secret text — Snyk API token (snyk.io → Account Settings)
+     *   sonarcloud-token            Secret text — SonarCloud token (sonarcloud.io → My Account → Security)
      *
      * Required Jenkins tools (Manage Jenkins → Tools):
      *   NodeJS-20   Node.js 20 installation
@@ -32,8 +34,10 @@ pipeline {
         GITHUB_REPO     = 'https://github.com/NVT219045587/NutriMate'
         NOTIFY_EMAIL    = 'viettung0901+jenkinlog@gmail.com'
         OCTOPUS_PROJECT    = 'NutriMate'
-        OCTOPUS_SERVER_URL = 'https://s219045587.octopus.app'  // replace with your Octopus Cloud URL
+        OCTOPUS_SERVER_URL = 'https://s219045587.octopus.app'
         RELEASE_VERSION    = "1.0.${env.BUILD_NUMBER}"
+        SONAR_ORG          = 'nvt219045587'           // SonarCloud organisation key
+        SONAR_PROJECT_KEY  = 'NVT219045587_NutriMate' // SonarCloud project key
     }
 
     // Fires automatically when GitHub sends a push webhook to Jenkins.
@@ -84,6 +88,48 @@ pipeline {
                             bat 'npm run build'
                         }
                     }
+                }
+            }
+        }
+
+        // ── Security scan — Snyk ─────────────────────────────────────────────
+        stage('Security — Snyk') {
+            parallel {
+                stage('Frontend') {
+                    steps {
+                        dir('nutrimate.client') {
+                            withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                                bat 'npm test'
+                            }
+                        }
+                    }
+                }
+                stage('Backend') {
+                    steps {
+                        withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                            bat 'npx snyk test --file=NutriMate.Server/NutriMate.Server.csproj --severity-threshold=high'
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── SonarCloud static analysis ────────────────────────────────────────
+        stage('SonarCloud Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'SONAR_TOKEN')]) {
+                    bat """
+                        dotnet sonarscanner begin ^
+                            /k:"%SONAR_PROJECT_KEY%" ^
+                            /o:"%SONAR_ORG%" ^
+                            /d:sonar.token="%SONAR_TOKEN%" ^
+                            /d:sonar.host.url="https://sonarcloud.io"
+
+                        dotnet build NutriMate.Server/NutriMate.Server.csproj ^
+                            -c Release --no-restore -p:BuildSpaProject=false
+
+                        dotnet sonarscanner end /d:sonar.token="%SONAR_TOKEN%"
+                    """
                 }
             }
         }

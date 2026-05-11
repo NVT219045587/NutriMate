@@ -6,12 +6,7 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        module: 'CommonJS',
-        moduleResolution: 'Node',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-      },
+      tsconfig: './tsconfig.test.json',
     }],
   },
 };

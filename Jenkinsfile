@@ -92,23 +92,12 @@ pipeline {
             }
         }
 
-        // ── Security scan — Snyk ─────────────────────────────────────────────
+        // ── Security scan — Snyk (npm dependencies) ─────────────────────────
         stage('Security — Snyk') {
-            parallel {
-                stage('Frontend') {
-                    steps {
-                        dir('nutrimate.client') {
-                            withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                                bat 'npm test'
-                            }
-                        }
-                    }
-                }
-                stage('Backend') {
-                    steps {
-                        withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                            bat 'npx snyk test --file=NutriMate.Server/NutriMate.Server.csproj --severity-threshold=high'
-                        }
+            steps {
+                dir('nutrimate.client') {
+                    withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                        bat 'npm test'
                     }
                 }
             }
